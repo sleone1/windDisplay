@@ -18,9 +18,9 @@ long startTime = millis();
 long endTime = millis();
 
 /* direction variables */
-const int sensor = A5;
+const int SENSOR = A5;
 
-const int offset = 0;  // this should let you calibrate the whole rotation sensor
+const int OFFSET = 0;  // this should let you calibrate the whole rotation sensor
 
 int currValue;
 int prevValue = 0;
@@ -29,11 +29,11 @@ int dir;
 int prevDir = 0;
 
 /* speed variables */
-const int button = 12; // speed instrument pin
+const int BUTTON = 12; // speed instrument pin
 
-const int timeInt = 5000;  // ms
-const int radius = 9;  // cm
-const int pi = 3.14;
+const int TIME_INT = 5000;  // ms
+const int RADIUS = 9;  // cm
+const int MY_PI = 3.14;
 
 volatile int pushCount = 0;
 
@@ -128,7 +128,7 @@ ISR (PCINT0_vect) {
 // runs once
 void setup() {
   Serial.begin(9600);
-  pinMode(button, INPUT);
+  pinMode(BUTTON, INPUT);
   mylcd.Init_LCD();
 
   // inital screen setup
@@ -143,21 +143,21 @@ void setup() {
   markZone();
 
   // set up inturrupt for speed rotation count
-  *digitalPinToPCMSK(button) |= bit (digitalPinToPCMSKbit(button));  // enable pin
-  PCIFR  |= bit (digitalPinToPCICRbit(button));  // clear any outstanding interrupt
-  PCICR  |= bit (digitalPinToPCICRbit(button));  // enable interrupt for the group
+  *digitalPinToPCMSK(BUTTON) |= bit (digitalPinToPCMSKbit(BUTTON));  // enable pin
+  PCIFR  |= bit (digitalPinToPCICRbit(BUTTON));  // clear any outstanding interrupt
+  PCICR  |= bit (digitalPinToPCICRbit(BUTTON));  // enable interrupt for the group
 }
 
 // runs forever
 void loop() {
   /* direction */
   // read sensor value
-  currValue = analogRead(sensor);
+  currValue = analogRead(SENSOR);
   
   // scale sensor value to be between 0 and 360
   dir = map(currValue, 0, 1023, 0, 360);
   
-  dir = dir + offset;
+  dir = dir + OFFSET;
   // ensure all directions are within first rotation (ex: 400 -> 40)
   if (dir > 360) {
     dir -= 360;
@@ -174,12 +174,12 @@ void loop() {
   prevDir = dir;
 
   /* speed */
-  // do every five seconds
-  if (endTime - startTime >= timeInt) {
+  // do every TIME_INT/1000 seconds
+  if (endTime - startTime >= TIME_INT) {
     // calculate knots
     noInterrupts();
     pushCount /= 2;
-    cmPerS = (pushCount * (2 * pi * radius)) / ((endTime - startTime) / 1000);  // atomic
+    cmPerS = (pushCount * (2 * MY_PI * RADUIS)) / ((endTime - startTime) / 1000);  // atomic
     interrupts();
     knots = cmPerS / 51.444;
     
