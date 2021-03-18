@@ -14,9 +14,6 @@ LCDWIKI_KBV mylcd(ILI9486, A3, A2, A1, A0, A4);  // model, cs, cd, wr, rd, reset
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-long startTime = millis();
-long endTime = millis();
-
 /* direction variables */
 const int SENSOR = A5;
 
@@ -29,9 +26,10 @@ int dir;
 int prevDir = 0;
 
 /* speed variables */
+long startTime, endTime;
 const int BUTTON = 12; // speed instrument pin
 
-const int TIME_INT = 5000;  // ms
+const int TIME_INT = 1000;  // ms
 const int RADIUS = 9;  // cm
 const int MY_PI = 3.14;
 
@@ -125,6 +123,24 @@ ISR (PCINT0_vect) {
   mylcd.Print_Number_Float(pushCount, 1, RIGHT, 70, '.', 5, ' ');
 }
 
+/* implement a five-long queue-like structure to track over time */
+int queue[5] = {0, 0, 0, 0, 0};
+
+/* insert new element x at end, replacing oldest element */
+void push(int x) {
+  // fill in if empty array
+  for (byte i = 0; i < 5; i++) {
+    if (queue[i] == 0) {
+      queue[i] = x;
+    }
+  }
+  // insert at end of array
+  for (byte i = 0; i < 4; i++) {
+    queue[i] = queue[i + 1];
+  }
+  queue[4] = x;
+}
+
 // runs once
 void setup() {
   Serial.begin(9600);
@@ -146,6 +162,10 @@ void setup() {
   *digitalPinToPCMSK(BUTTON) |= bit (digitalPinToPCMSKbit(BUTTON));  // enable pin
   PCIFR  |= bit (digitalPinToPCICRbit(BUTTON));  // clear any outstanding interrupt
   PCICR  |= bit (digitalPinToPCICRbit(BUTTON));  // enable interrupt for the group
+
+  // initalize timing
+  startTime = millis();
+  endTime = millis();
 }
 
 // runs forever
@@ -174,17 +194,27 @@ void loop() {
   prevDir = dir;
 
   /* speed */
-  // do every TIME_INT/1000 seconds
+  // do every (TIME_INT/1000) seconds
   if (endTime - startTime >= TIME_INT) {
     // calculate knots
     noInterrupts();
     pushCount /= 2;
-    cmPerS = (pushCount * (2 * MY_PI * RADUIS)) / ((endTime - startTime) / 1000);  // atomic
+    cmPerS = (pushCount * (2 * MY_PI * RADIUS)) / ((endTime - startTime) / 1000);  // atomic
     interrupts();
     knots = cmPerS / 51.444;
+
+    // update running speed queue
+    push(knots);
+
+    // calculate overall speed
+    int overall = 0;
+    for (byte i = 0; i < 5; i++) {
+      overall += queue[i];
+    }
+    overall /= 5;
     
     // update display
-    displaySpeed(knots);
+    displaySpeed(overall);
 
     // reset counters
     noInterrupts();
