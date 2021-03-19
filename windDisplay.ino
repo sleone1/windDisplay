@@ -30,6 +30,7 @@ long startTime, endTime;
 const int BUTTON = 12; // speed instrument pin
 
 const int TIME_INT = 1000;  // ms
+const int TIME_SPAN = 2;  // STILL ALSO HAVE TO CHANGE ARRAY INITALIZATION STATEMENT
 const int RADIUS = 9;  // cm
 const int MY_PI = 3.14;
 
@@ -124,21 +125,21 @@ ISR (PCINT0_vect) {
 }
 
 /* implement a five-long queue-like structure to track over time */
-int queue[5] = {0, 0, 0, 0, 0};
+int queue[2] = {0, 0};  // CHANGE IF YOU CHANGED TIME SPAN
 
 /* insert new element x at end, replacing oldest element */
 void push(int x) {
   // fill in if empty array
-  for (byte i = 0; i < 5; i++) {
+  for (byte i = 0; i < TIME_SPAN; i++) {
     if (queue[i] == 0) {
       queue[i] = x;
     }
   }
   // insert at end of array
-  for (byte i = 0; i < 4; i++) {
+  for (byte i = 0; i < TIME_SPAN - 1; i++) {
     queue[i] = queue[i + 1];
   }
-  queue[4] = x;
+  queue[TIME_SPAN - 1] = x;
 }
 
 // runs once
@@ -208,10 +209,10 @@ void loop() {
 
     // calculate overall speed
     int overall = 0;
-    for (byte i = 0; i < 5; i++) {
+    for (byte i = 0; i < TIME_SPAN; i++) {
       overall += queue[i];
     }
-    overall /= 5;
+    overall /= TIME_SPAN;
     
     // update display
     displaySpeed(overall);
